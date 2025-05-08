@@ -21,7 +21,7 @@ imageSourceUrl = 'https://' + app.config['BLOB_ACCOUNT'] + '.blob.core.windows.n
 def home():
     user = User.query.filter_by(username=current_user.username).first_or_404()
     posts = Post.query.all()
-    app.logger.info(f'User {current_user.username} accessed the home page.')
+    # app.logger.info(f'User {current_user.username} accessed the home page.')
     return render_template(
         'index.html',
         title='Home Page',
@@ -35,7 +35,7 @@ def new_post():
     if form.validate_on_submit():
         post = Post()
         post.save_changes(form, request.files['image_path'], current_user.id, new=True)
-        app.logger.info(f'User {current_user.username} created a new post.')
+        # app.logger.info(f'User {current_user.username} created a new post.')
         return redirect(url_for('home'))
     return render_template(
         'post.html',
@@ -63,20 +63,20 @@ def post(id):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        app.logger.info(f'User {current_user.username} attempted to log in while already authenticated.')
+        app.logger.info(f'User authenticated')
         return redirect(url_for('home'))
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
         if user is None or not user.check_password(form.password.data):
             flash('Invalid username or password')
-            app.logger.warning(f'Failed login attempt for username: {form.username.data}.')
+            app.logger.warning(f'Failed login attempt')
             return redirect(url_for('login'))
         login_user(user, remember=form.remember_me.data)
         next_page = request.args.get('next')
         if not next_page or url_parse(next_page).netloc != '':
             next_page = url_for('home')
-        app.logger.info(f'User {user.username} logged in successfully.')
+        app.logger.info('logged in successfully.')
         return redirect(next_page)
     session["state"] = str(uuid.uuid4())
     auth_url = _build_auth_url(scopes=Config.SCOPE, state=session["state"])
@@ -88,7 +88,7 @@ def authorized():
         app.logger.warning('State mismatch during authorization.')
         return redirect(url_for("home"))  # No-OP. Goes back to Index page
     if "error" in request.args:  # Authentication/Authorization failure
-        app.logger.error(f'Authorization error: {request.args}.')
+        # app.logger.error(f'Authorization error: {request.args}.')
         return render_template("auth_error.html", result=request.args)
     if request.args.get('code'):
         cache = _load_cache()
@@ -141,10 +141,10 @@ def _build_auth_url(authority=None, scopes=None, state=None):
         state=state or str(uuid.uuid4()),
         redirect_uri=url_for('authorized', _external=True, _scheme='https'))
 
-# Testing logs:
-@app.route('/test_logging')
-def test_logging():
-    app.logger.info('This is an info message.')
-    app.logger.warning('This is a warning message.')
-    app.logger.error('This is an error message.')
-    return "Check your logs!"
+# # Testing logs:
+# @app.route('/test_logging')
+# def test_logging():
+#     app.logger.info('This is an info message.')
+#     app.logger.warning('This is a warning message.')
+#     app.logger.error('This is an error message.')
+#     return "Check your logs!"
