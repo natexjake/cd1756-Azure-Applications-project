@@ -1,152 +1,22 @@
-"""
-Routes and views for the flask application.
-"""
+# Write-up Template
 
-from datetime import datetime
-from flask import render_template, flash, redirect, request, session, url_for
-from werkzeug.urls import url_parse
-from config import Config
-from FlaskWebProject import app, db
-from FlaskWebProject.forms import LoginForm, PostForm
-from flask_login import current_user, login_user, logout_user, login_required
-from FlaskWebProject.models import User, Post
-import msal
-import uuid
+### Analyze, choose, and justify the appropriate resource option for deploying the app.
 
-imageSourceUrl = 'https://'+ app.config['BLOB_ACCOUNT']  + '.blob.core.windows.net/' + app.config['BLOB_CONTAINER']  + '/'
+*For **both** a VM or App Service solution for the CMS app:*
+- *Analyze costs, scalability, availability, and workflow*
+- *Choose the appropriate solution (VM or App Service) for deploying the app*
+- *Justify your choice*
 
-@app.route('/')
-@app.route('/home')
-@login_required
-def home():
-    user = User.query.filter_by(username=current_user.username).first_or_404()
-    posts = Post.query.all()
-    return render_template(
-        'index.html',
-        title='Home Page',
-        posts=posts
-    )
+### Assess app changes that would change your decision.
 
-@app.route('/new_post', methods=['GET', 'POST'])
-@login_required
-def new_post():
-    form = PostForm(request.form)
-    if form.validate_on_submit():
-        post = Post()
-        post.save_changes(form, request.files['image_path'], current_user.id, new=True)
-        return redirect(url_for('home'))
-    return render_template(
-        'post.html',
-        title='Create Post',
-        imageSource=imageSourceUrl,
-        form=form
-    )
+*Detail how the app and any other needs would have to change for you to change your decision in the last section.* 
 
+I have chosen to implement our project using Azure Web Apps because it is more cost-effective in the long run. Azure Web Apps typically follow a pay-as-you-go pricing model, which can be more economical for smaller applications compared to Virtual Machines. This can lead to significant long-term savings, especially for projects that may start small but have the potential for growth. Additionally, with Azure Web Apps, we do not need to manage the underlying infrastructure, saving costs related to maintenance and management. 
 
-@app.route('/post/<int:id>', methods=['GET', 'POST'])
-@login_required
-def post(id):
-    post = Post.query.get(int(id))
-    form = PostForm(formdata=request.form, obj=post)
-    if form.validate_on_submit():
-        post.save_changes(form, request.files['image_path'], current_user.id)
-        return redirect(url_for('home'))
-    return render_template(
-        'post.html',
-        title='Edit Post',
-        imageSource=imageSourceUrl,
-        form=form
-    )
+In terms of scalability, Azure Web Apps offer built-in automatic scaling options that allow us to adjust resources based on traffic. This flexibility is advantageous as it enables us to start with a web app and focus on development and deployment without worrying about server management. If necessary, we can easily transition to a Virtual Machine in the future. This scalability can also help accommodate unexpected traffic spikes, which is common in web applications. 
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('home'))
-    form = LoginForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
-        if user is None or not user.check_password(form.password.data):
-            flash('Invalid username or password')
-            return redirect(url_for('login'))
-        login_user(user, remember=form.remember_me.data)
-        next_page = request.args.get('next')
-        if not next_page or url_parse(next_page).netloc != '':
-            next_page = url_for('home')
-        return redirect(next_page)
-    session["state"] = str(uuid.uuid4())
-    auth_url = _build_auth_url(scopes=Config.SCOPE, state=session["state"])
-    return render_template('login.html', title='Sign In', form=form, auth_url=auth_url)
+Regarding availability, Azure Web Apps are designed for high availability with built-in redundancy and failover capabilities. Azure manages the infrastructure to ensure uptime, and they provide Service Level Agreements (SLAs) that guarantee a certain level of availability. Specifically, Azure provides an SLA of 99.99% uptime for Azure Web Apps, ensuring that our application remains accessible to users. This high level of availability is critical for user satisfaction, as downtime can lead to lost users and revenue. 
 
-@app.route(Config.REDIRECT_PATH)  # Its absolute URL must match your app's redirect_uri set in AAD
-def authorized():
-    if request.args.get('state') != session.get("state"):
-        return redirect(url_for("home"))  # No-OP. Goes back to Index page
-    if "error" in request.args:  # Authentication/Authorization failure
-        return render_template("auth_error.html", result=request.args)
-    if request.args.get('code'):
-        cache = _load_cache()
-        # TODO: Acquire a token from a built msal app, along with the appropriate redirect URI
-        # result = None
-        result = _build_msal_app(cache=cache).acquire_token_by_authorization_code(
-            request.args['code'],
-            scopes=Config.SCOPE,
-            redirect_uri=url_for('authorized', _external=True, _scheme='https')
-        )
-        if "error" in result:
-            return render_template("auth_error.html", result=result)
-        session["user"] = result.get("id_token_claims")
-        # Note: In a real app, we'd use the 'name' property from session["user"] below
-        # Here, we'll use the admin username for anyone who is authenticated by MS
-        user = User.query.filter_by(username="admin").first()
-        login_user(user)
-        _save_cache(cache)
-    return redirect(url_for('home'))
+For the workflow, deploying to Azure Web Apps can be done through various methods such as GitHub Actions, Azure DevOps, or manual uploads, streamlining the development process. Azure also provides monitoring tools that help us track the performance of our web app, making it easier to maintain and optimize. Additionally, the ability to integrate with CI/CD (Continuous Integration/Continuous Deployment) tools enhances the development workflow, making it easier to implement updates and new features. 
 
-@app.route('/logout')
-def logout():
-    logout_user()
-    if session.get("user"): # Used MS Login
-        # Wipe out user and its token cache from session
-        session.clear()
-        # Also logout from your tenant's web session
-        return redirect(
-            Config.AUTHORITY + "/oauth2/v2.0/logout" +
-            "?post_logout_redirect_uri=" + url_for("login", _external=True))
-
-    return redirect(url_for('login'))
-
-def _load_cache():
-    # TODO: Load the cache from `msal`, if it exists
-    cache = None
-    return cache
-
-def _save_cache(cache):
-    # TODO: Save the cache, if it has changed
-    # pass
-    if cache.has_state_changed:
-        session['token_cache'] = cache.serialize()
-
-def _build_msal_app(cache=None, authority=None):
-    # TODO: Return a ConfidentialClientApplication
-    # return None
-    return msal.ConfidentialClientApplication(
-        client_id=Config.CLIENT_ID, authority=authority or Config.AUTHORITY,
-        client_credential=Config.CLIENT_SECRET,token_cache=cache)
-
-def _build_auth_url(authority=None, scopes=None, state=None):
-    # TODO: Return the full Auth Request URL with appropriate Redirect URI
-    # return None
-    return _build_msal_app(authority=authority).get_authorization_request_url(
-        scopes or [],
-        state =state or str(uuid.uuid4()),
-        redirect_uri=url_for('authorized', _external=True, _scheme='https'))
-
-
-# testing logs:
-
-@app.route('/test_logging')
-def test_logging():
-    app.logger.info('This is an info message.')
-    app.logger.warning('This is a warning message.')
-    app.logger.error('This is an error message.')
-    return "Check your logs!"
+In conclusion, by leveraging Azure Web Apps, we not only reduce costs but also enhance our ability to deliver a reliable and efficient application to our users. This approach provides the flexibility to scale and adapt as our project grows, contributing to the overall success of the project. Azure Web Apps allow for quick adjustments to meet changing project needs, ensuring that we can continue to deliver value to our users.
