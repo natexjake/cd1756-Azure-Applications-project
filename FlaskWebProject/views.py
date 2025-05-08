@@ -128,7 +128,6 @@ def _load_cache():
 
 def _save_cache(cache):
     # TODO: Save the cache, if it has changed
-def _save_cache(cache):
     app.logger.debug(f'Cache state before saving: {cache}')
     if cache and cache.has_state_changed:
         session['token_cache'] = cache.serialize()
