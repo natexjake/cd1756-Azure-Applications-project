@@ -20,3 +20,11 @@ Regarding availability, Azure Web Apps are designed for high availability with b
 For the workflow, deploying to Azure Web Apps can be done through various methods such as GitHub Actions, Azure DevOps, or manual uploads, streamlining the development process. Azure also provides monitoring tools that help us track the performance of our web app, making it easier to maintain and optimize. Additionally, the ability to integrate with CI/CD (Continuous Integration/Continuous Deployment) tools enhances the development workflow, making it easier to implement updates and new features. 
 
 In conclusion, by leveraging Azure Web Apps, we not only reduce costs but also enhance our ability to deliver a reliable and efficient application to our users. This approach provides the flexibility to scale and adapt as our project grows, contributing to the overall success of the project. Azure Web Apps allow for quick adjustments to meet changing project needs, ensuring that we can continue to deliver value to our users.
+
+### Assess app changes that would change your decision.
+
+If I were to consider deploying the application on a Virtual Machine instead of Azure Web Apps, several changes would need to be made. First, the application would require a more complex setup, as I would need to manage the operating system and install all necessary software, including web servers and databases. This would increase the workload for deployment and ongoing maintenance.
+
+Additionally, using a Virtual Machine would provide greater control over the infrastructure, allowing for custom configurations tailored to specific application needs. However, this would also mean taking on the responsibility for security updates and scaling, which Azure Web Apps typically manage automatically.
+
+To accommodate this change, I would also need to consider additional resources, such as a dedicated database server and possibly load balancers to manage traffic effectively. This shift would require careful planning and additional management efforts to ensure the application remains reliable and scalable.
