@@ -13,9 +13,9 @@ app.config.from_object(Config)
 # TODO: Add any logging levels and handlers with app.logger
 
 # Set up logging
-logging.basicConfig(level=logging.WARNING)  # Set the logging level to WARNING
+logging.basicConfig(level=logging.INFO)  # Set the logging level to WARNING
 streamHandler = logging.StreamHandler()  # Create a stream handler
-streamHandler.setLevel(logging.WARNING)  # Set the handler level to WARNING
+streamHandler.setLevel(logging.INFO)  # Set the handler level to WARNING
 app.logger.addHandler(streamHandler)  # Add the handler to the app's logger
 
 Session(app)
